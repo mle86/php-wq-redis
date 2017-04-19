@@ -11,8 +11,6 @@ class RedisServerTest
 	extends AbstractWorkServerAdapterTest
 {
 
-	private const DEFAULT_REDIS_PORT = 6379;
-
 	public function checkEnvironment () {
 		$this->checkInDocker();
 
@@ -20,13 +18,13 @@ class RedisServerTest
 			"No REDIS_PORT ENV variable found! Is this test running in the test container?");
 		$this->assertGreaterThan(1024, getenv('REDIS_PORT'),
 			"Invalid REDIS_PORT ENV variable!");
-		$this->assertNotEquals(self::DEFAULT_REDIS_PORT, getenv('REDIS_PORT'),
+		$this->assertNotEquals(RedisWorkServer::DEFAULT_REDIS_PORT, getenv('REDIS_PORT'),
 			"REDIS_PORT ENV variable should NOT be set to the default Redis port! " .
 			"This prevents the test scripts from accidentally running on the host system.");
 
 		$ret = null;
 		try {
-			$ret = (new Redis)->connect("localhost", self::DEFAULT_REDIS_PORT);
+			$ret = (new Redis)->connect("localhost", RedisWorkServer::DEFAULT_REDIS_PORT);
 		} catch (\PHPUnit_Framework_Error_Warning | \RedisException $e) {
 			// don't care
 		}
@@ -36,10 +34,7 @@ class RedisServerTest
 	}
 
 	public function getWorkServerAdapter () : WorkServerAdapter {
-		$r = new Redis;
-		$this->assertTrue($r->connect("localhost", (int)getenv('REDIS_PORT')),
-			"Redis::connect() failed!");
-		return new RedisWorkServer ($r);
+		return RedisWorkServer::connect("localhost", (int)getenv('REDIS_PORT'));
 	}
 
 }

@@ -32,12 +32,43 @@ class RedisWorkServer
 
 	const APPEND_DELAYED_JOBS = true;
 
+	const DEFAULT_REDIS_PORT = 6379;
 
-	/** @var \Redis */
+
+	/** @var Redis */
 	protected $redis;
 
+	/**
+	 * Constructor.
+	 * Takes an already-configured {@see Pheanstalk} instance to work with.
+	 * Does not attempt to establish a connection itself --
+	 * use the {@see connect()} factory method for that instead
+	 * or do it with {@see Redis::connect()} prior to using this constructor.
+	 *
+	 * @param Redis $serverConnection
+	 */
 	public function __construct (Redis $serverConnection) {
 		$this->redis = $serverConnection;
+	}
+
+	/**
+	 * Factory method.
+	 * This will create a new {@see Redis} instance by itself.
+	 *
+	 * See {@see Redis::connect()} for the parameter descriptions.
+	 *
+	 * @param string $host
+	 * @param int $port
+	 * @param float $timeout
+	 * @param int $retry_interval
+	 * @return self
+	 */
+	public static function connect (string $host = "localhost", int $port = self::DEFAULT_REDIS_PORT, float $timeout = 0.0, int $retry_interval = 0) {
+		$redis = new Redis;
+		if (!$redis->connect($host, $port, $timeout, $retry_interval)) {
+			throw new \RuntimeException ("Redis connection failed");
+		}
+		return new self ($redis);
 	}
 
 
