@@ -116,6 +116,7 @@ class RedisWorkServer
 	 *
 	 * @param string|string[] $workQueue
 	 * @param int $timeout  Any positive timeout, or the FOREVER value
+	 * @return array|null
 	 */
 	private function fetchQueueEntry ($workQueue, int $timeout) {
 		if ($timeout === self::FOREVER) {
