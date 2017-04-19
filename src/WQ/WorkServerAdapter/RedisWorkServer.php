@@ -41,18 +41,19 @@ class RedisWorkServer
 	}
 
 
-	public function getNextQueueEntry (string $workQueue, int $timeout = self::DEFAULT_TIMEOUT) : ?QueueEntry {
-		$this->activateDelayedJobs($workQueue);
+	public function getNextQueueEntry ($workQueue, int $timeout = self::DEFAULT_TIMEOUT) : ?QueueEntry {
+		$this->activateDelayedJobs((array)$workQueue);
 
 		if ($timeout === self::NOBLOCK) {
-			$entry = $this->redis->lPop(self::queueKey($workQueue));
+			$entry = $this->multiLPOP($workQueue);
 		} else {
 			$entry = $this->fetchQueueEntry($workQueue, $timeout);
 		}
 
 		if (is_array($entry)) {
-			// LPOP returns a string, BLPOP returns a [fromKey,content] array
-			$entry = $entry[1] ?? null;
+			// LPOP returns a string, BLPOP and multiLPOP() return a [fromKey,content] array
+			$workQueue = $entry[0] ?? null;
+			$entry     = $entry[1] ?? null;
 		}
 
 		if (empty($entry)) {
@@ -81,95 +82,125 @@ class RedisWorkServer
 	 * wait until we reach it,
 	 * then call activateDelayedJobs() once,
 	 * then use BLPOP again with the rest of the timeout.
+	 *
+	 * @param string|string[] $workQueue
+	 * @param int $timeout  Any positive timeout, or the FOREVER value
 	 */
-	private function fetchQueueEntry (string $workQueue, int $timeout) {
+	private function fetchQueueEntry ($workQueue, int $timeout) {
 		if ($timeout === self::FOREVER) {
 			$timeout = 60 * 60 * 24 * 365 * 10;
 		}
 		
-		$next_ts = $this->nextActivationTimestamp($workQueue);
+		$next_ts = $this->nextActivationTimestamp((array)$workQueue);
 		if ($next_ts > 0 && $next_ts <= time() + $timeout) {
 			$first_delay = max(1, $next_ts - time());
 			$timeout     = $timeout - $first_delay;  // rest delay
 
-			$raw_entry = $this->redis->blPop(self::queueKey($workQueue), $first_delay);
+			$raw_entry = $this->redis->blPop(self::queueKeys((array)$workQueue), $first_delay);
 			if (!empty($raw_entry)) {
 				return $raw_entry;
 			}
 
-			$this->activateDelayedJobs($workQueue);
+			$this->activateDelayedJobs((array)$workQueue);
 		}
 
 		return ($timeout >= 1)
-			? $this->redis->blPop(self::queueKey($workQueue), $timeout)
-			: $this->redis->lPop(self::queueKey($workQueue));
+			? $this->redis->blPop(self::queueKeys((array)$workQueue), $timeout)
+			: $this->multiLPOP($workQueue);
 	}
 
-	private function nextActivationTimestamp (string $workQueue) : ?int {
-		$epsilon = 0;
+	private function nextActivationTimestamp (array $workQueues) : ?int {
+		$minTimestamp = null;
 
-		$delayedKey = self::delayedKey($workQueue);
-		$firstEntry = $this->redis->zrange($delayedKey, 0, 0, true);
-		if (empty($firstEntry)) {
-			return null;
+		foreach ($workQueues as $workQueue) {
+			$delayedKey = self::delayedKey($workQueue);
+			$firstEntry = $this->redis->zrange($delayedKey, 0, 0, true);
+			if (!empty($firstEntry)) {
+				$firstTimestamp = ceil(reset($firstEntry));
+				$minTimestamp   = (isset($minTimestamp))
+					? min($minTimestamp, $firstTimestamp)
+					: $firstTimestamp;
+			}
 		}
 
-		$firstTimestamp = ceil(reset($firstEntry)) + $epsilon;
-		return $firstTimestamp;
+		return $minTimestamp;
 	}
 
 	/**
 	 * Checks the work queue and activates any delayed jobs whose delay interval is up.
 	 *
-	 * @param string $workQueue
+	 * @param string[] $workQueues
 	 */
-	private function activateDelayedJobs (string $workQueue) {
-		$delayedKey = self::delayedKey($workQueue);
-		$queueKey   = self::queueKey($workQueue);
+	private function activateDelayedJobs (array $workQueues) {
+		foreach ($workQueues as $workQueue) {
+			$delayedKey = self::delayedKey($workQueue);
+			$queueKey   = self::queueKey($workQueue);
 
-		$epsilon = 0.0001;
+			$epsilon = 0.0001;
 
-		if ($this->redis->zCard($delayedKey) <= 0) {
-			// early return: there are no delayed jobs
-			return;
+			if ($this->redis->zCard($delayedKey) <= 0) {
+				// early return: there are no delayed jobs
+				continue;
+			}
+
+			do {
+				/* This loop ensures that we get all delayed jobs whose delay is over,
+				 * deleting them from their delaying Sorted Set
+				 * while avoiding race conditions.
+				 * This is done by wrapping the deletion in a transaction
+				 * while watching the delaying sorted set for any changes,
+				 * and retrying the process if there's been some conflict.  */
+
+				$now = time() + $epsilon;
+				$this->redis->watch($delayedKey);
+				$jobs = $this->redis->zRangeByScore($delayedKey, '-inf', $now);
+
+				if (empty($jobs)) {
+					// early return: there are delayed jobs, but none that are ready now
+					$this->redis->unwatch();
+					continue 2;
+				}
+
+				/** @noinspection PhpUndefinedMethodInspection */
+				$ret = $this->redis->multi()
+					->zRemRangeByScore($delayedKey, '-inf', $now)
+					->exec();
+
+			} while ($ret === false || $ret === null);
+
+			// Now store the jobs in the actual work queue:
+
+			if (self::APPEND_DELAYED_JOBS) {
+				foreach ($jobs as $job) {
+					$this->redis->rPush($queueKey, $job);
+				}
+			} else {
+				foreach ($jobs as $job) {
+					$this->redis->lPush($queueKey, $job);
+				}
+			}
 		}
+	}
 
-		do {
-			/* This loop ensures that we get all delayed jobs whose delay is over,
-			 * deleting them from their delaying Sorted Set
-			 * while avoiding race conditions.
-			 * This is done by wrapping the deletion in a transaction
-			 * while watching the delaying sorted set for any changes,
-			 * and retrying the process if there's been some conflict.  */
-
-			$now = time() + $epsilon;
-			$this->redis->watch($delayedKey);
-			$jobs = $this->redis->zRangeByScore($delayedKey, '-inf', $now);
-
-			if (empty($jobs)) {
-				// early return: there are delayed jobs, but none that are ready now
-				$this->redis->unwatch();
-				return;
-			}
-
-			/** @noinspection PhpUndefinedMethodInspection */
-			$ret = $this->redis->multi()
-				->zRemRangeByScore($delayedKey, '-inf', $now)
-				->exec();
-
-		} while ($ret === false || $ret === null);
-
-		// Now store the jobs in the actual work queue:
-
-		if (self::APPEND_DELAYED_JOBS) {
-			foreach ($jobs as $job) {
-				$this->redis->rPush($queueKey, $job);
-			}
-		} else {
-			foreach ($jobs as $job) {
-				$this->redis->lPush($queueKey, $job);
+	/**
+	 * Returns the first entry from any of the specified queue names,
+	 * or NULL if all of those queues are empty at the moment.
+	 *
+	 * Has the same return format as BLPOP:
+	 * <tt>[fromKey, content]</tt>.
+	 *
+	 * @param string|string[] $workQueues
+	 * @return array|null
+	 */
+	private function multiLPOP ($workQueues) : ?array {
+		foreach ((array)$workQueues as $workQueue) {
+			$ret = $this->redis->lPop(self::queueKey($workQueue));
+			if (!empty($ret)) {
+				return [$workQueue, $ret];
+				// emulates BLPOP's return format
 			}
 		}
+		return null;
 	}
 
 	private static function queueKey (string $workQueue) {
@@ -183,6 +214,25 @@ class RedisWorkServer
 	private static function buriedKey (string $workQueue) {
 		return "_wq_buried.{$workQueue}";
 	}
+
+	private static function queueKeys (array $workQueues) {
+		foreach ($workQueues as &$wq) {
+			$wq = self::queueKey($wq);
+		}
+		return $workQueues;
+	}
+#	private static function delayedKeys (array $workQueues) {
+#		foreach ($workQueues as &$wq) {
+#			$wq = self::delayedKey($wq);
+#		}
+#		return $workQueues;
+#	}
+#	private static function buriedKeys (array $workQueues) {
+#		foreach ($workQueues as &$wq) {
+#			$wq = self::buriedKey($wq);
+#		}
+#		return $workQueues;
+#	}
 
 	/**
 	 * Stores a job in the work queue for later processing.
