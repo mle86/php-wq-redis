@@ -34,7 +34,7 @@ $ composer require mle86/wq-redis
 
 # Class reference
 
-`class mle86\WQ\WorkServerAdapter\`**`RedisWorkServer`** `implements WorkServerAdapter`
+(<code>class mle86\WQ\WorkServerAdapter\\<b>RedisWorkServer</b> implements WorkServerAdapter</code>)
 
 It connects to a Redis server.
 
@@ -55,12 +55,12 @@ this class will create multiple Redis keys:
 The delaying mechanism was inspired by
 [this StackOverflow response](http://stackoverflow.com/a/15016319).
 
-* `public function` **`__construct`** `(\Redis $serverConnection)`  
+* <code>public function <b>__construct</b> (\Redis $serverConnection)</code>  
     Takes an already-configured `Redis` instance to work with.
-    Does not attempt to establish a connection itself --
+    Does not attempt to establish a connection itself –
     use the `connect()` factory method for that instead
     or do it with `Redis::connect()` prior to using this constructor.
-* `public function` **`connect`** `($host = "localhost", $port = 6379, $timeout = 0.0, $retry_interval = 0)`  
+* <code>public function <b>connect</b> ($host = "localhost", $port = 6379, $timeout = 0.0, $retry_interval = 0)</code>  
     Factory method.
     This will create a new `Redis` instance by itself.  
     See [`Redis::connect()`](https://github.com/phpredis/phpredis#connect-open) for the parameter descriptions.
