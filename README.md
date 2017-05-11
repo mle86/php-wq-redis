@@ -79,13 +79,16 @@ which are documented in the [`WorkServerAdapter`](https://github.com/mle86/php-w
 
 ```php
 <?php
-use mle86\WQ\WorkProcessor;
 use mle86\WQ\WorkServerAdapter\RedisWorkServer;
+use mle86\WQ\WorkProcessor;
+use mle86\WQ\Job\Job;
 
 $processor = new WorkProcessor( new RedisWorkServer("localhost") );
 
 while (true) {
-    $processor->executeNextJob("webhook");
+    $processor->executeNextJob("webhook", function(Job $job) {
+        $job->...;
+    });
 }
 ```
 
