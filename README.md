@@ -65,6 +65,16 @@ The delaying mechanism was inspired by
     This will create a new `Redis` instance by itself.  
     See [`Redis::connect()`](https://github.com/phpredis/phpredis#connect-open) for the parameter descriptions.
 
+Interface methods
+which are documented in the [`WorkServerAdapter`](https://github.com/mle86/php-wq#workserveradapter-interface) interface:
+
+* <code>public function <b>storeJob</b> (string $workQueue, Job $job, int $delay = 0)</code>
+* <code>public function <b>getNextQueueEntry</b> ($workQueue, int $timeout = DEFAULT_TIMEOUT) : ?QueueEntry</code>
+* <code>public function <b>buryEntry</b> (QueueEntry $entry)</code>
+* <code>public function <b>requeueEntry</b> (QueueEntry $entry, int $delay, string $workQueue = null)</code>
+* <code>public function <b>deleteEntry</b> (QueueEntry $entry)</code>
+
+
 # Usage example
 
 ```php
