@@ -86,7 +86,7 @@ use mle86\WQ\Job\Job;
 $processor = new WorkProcessor( new RedisWorkServer("localhost") );
 
 while (true) {
-    $processor->executeNextJob("webhook", function(Job $job) {
+    $processor->processNextJob("webhook", function(Job $job) {
         $job->...;
     });
 }
@@ -94,6 +94,6 @@ while (true) {
 
 This executes all jobs available in the local Redis server's “`webhook`” queue, forever.
 It will however abort if one of the jobs throws an exception –
-you might want to add a logging try-catch block around the `executeNextJob()` call
+you might want to add a logging try-catch block around the `processNextJob()` call
 as shown in [WQ's “Minimal Example”](https://github.com/mle86/php-wq#minimal-example).
 
