@@ -21,6 +21,7 @@ update: $(COMPOSER)
 	$(COMPOSER) update
 
 
+# see TESTING.md
 test-image:
 	[ -n "`docker images -q '$(TEST_IMAGE):$(TEST_IMAGE_VERSION)'`" ] \
 	|| docker build --tag $(TEST_IMAGE):$(TEST_IMAGE_VERSION) .
