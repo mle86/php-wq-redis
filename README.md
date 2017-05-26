@@ -48,9 +48,9 @@ to emulate those features.
 For every `$workQueue` used,
 this class will create multiple Redis keys:
 
-* `_wq.`*`$workQueue`*  (ready jobs – List)
-* `_wq_delay.`*`$workQueue`*  (delayed jobs – Ordered Set)
-* `_wq_buried.`*`$workQueue`*  (buried jobs – List)
+* <code>\_wq.<i>$workQueue</i></code>  (ready jobs – List)
+* <code>\_wq\_delay.<i>$workQueue</i></code>  (delayed jobs – Ordered Set)
+* <code>\_wq\_buried.<i>$workQueue</i></code>  (buried jobs – List)
 
 The delaying mechanism was inspired by
 [this StackOverflow response](http://stackoverflow.com/a/15016319).
