@@ -12,3 +12,12 @@ For a similar effect, we could park the job in the *\_wq\_delayed…* list
 using Redis Transactions,
 although we need a way to safely delete finished jobs from there again.
 
+## Duplicates
+
+Redis Sorted Sets cannot contain duplicate values.
+
+Since we have to support duplicate jobs,
+we'll could append a `uniqid()` to the Job serialization or something.
+This would also help with targeted job deletion from a Sorted Set,
+which we'll need for our TTR semantics.
+
