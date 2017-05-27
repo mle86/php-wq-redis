@@ -1,7 +1,7 @@
 # WQ-Redis  (`mle86/wq-redis`)
 
 This package contains the PHP class
-`mle86\WQ\WorkServerAdapter\`**`RedisWorkServer`**.
+<code>mle86\WQ\WorkServerAdapter\\<b>RedisWorkServer</b></code>.
 
 It supplements the
 [**mle86/wq**](https://github.com/mle86/php-wq) package
