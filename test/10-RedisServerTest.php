@@ -3,6 +3,7 @@ namespace mle86\WQ\Tests;
 
 use mle86\WQ\WorkServerAdapter\WorkServerAdapter;
 use mle86\WQ\WorkServerAdapter\RedisWorkServer;
+use PHPUnit\Framework\Error\Error;
 use Redis;
 
 require_once __DIR__ . '/../vendor/mle86/wq/test/helper/AbstractWorkServerAdapterTest.php';
@@ -26,7 +27,7 @@ class RedisServerTest
         $ret = null;
         try {
             $ret = (new Redis)->connect("localhost", RedisWorkServer::DEFAULT_REDIS_PORT);
-        } catch (\PHPUnit_Framework_Error_Warning | \RedisException $e) {
+        } catch (Error | \RedisException $e) {
             // don't care
         }
         $this->assertNotTrue($ret,
