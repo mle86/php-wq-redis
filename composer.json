@@ -22,7 +22,7 @@
 
 	"require": {
 		"php": ">=7.1",
-		"mle86/wq": "dev-master",
+		"mle86/wq": "^0.9.0",
 		"ext-redis": "^3.0"
 	}
 }
