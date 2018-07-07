@@ -24,12 +24,16 @@ and should be compatible
 with all of its future 1.x versions as well.
 
 
-# Installation
+# Installation and Dependencies
 
 ```
 $ sudo apt install php-redis  # to install the phpredis extension
 $ composer require mle86/wq-redis
 ```
+
+It depends on PHP 7.1,
+[mle86/wq](https://github.com/mle86/php-wq),
+and the [phpredis](https://pecl.php.net/package/redis) extension.
 
 
 # Class reference
