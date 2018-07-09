@@ -321,4 +321,16 @@ class RedisWorkServer
         // nop, we already removed the entry from the queue with LPOP
     }
 
+    public function disconnect(): void
+    {
+        if ($this->redis) {
+            $this->redis->close();
+            $this->redis = null;
+        }
+    }
+
+    public function __destruct()
+    {
+        $this->disconnect();
+    }
 }
