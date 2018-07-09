@@ -64,7 +64,7 @@ The delaying mechanism was inspired by
     Does not attempt to establish a connection itself –
     use the `connect()` factory method for that instead
     or do it with `Redis::connect()` prior to using this constructor.
-* <code>public function <b>connect</b> ($host = "localhost", $port = 6379, $timeout = 0.0, $retry_interval = 0)</code>  
+* <code>public function <b>connect</b> ($host = "localhost", $port = 6379, $timeout = 0.0, $retry\_interval = 0)</code>  
     Factory method.
     This will create a new `Redis` instance by itself.  
     See [`Redis::connect()`](https://github.com/phpredis/phpredis#connect-open) for the parameter descriptions.
@@ -73,7 +73,7 @@ Interface methods
 which are documented in the [`WorkServerAdapter`](https://github.com/mle86/php-wq/blob/master/doc/Ref_WorkServerAdapter_interface.md) interface:
 
 * <code>public function <b>storeJob</b> (string $workQueue, Job $job, int $delay = 0)</code>
-* <code>public function <b>getNextQueueEntry</b> ($workQueue, int $timeout = DEFAULT_TIMEOUT) : ?QueueEntry</code>
+* <code>public function <b>getNextQueueEntry</b> ($workQueue, int $timeout = DEFAULT\_TIMEOUT) : ?QueueEntry</code>
 * <code>public function <b>buryEntry</b> (QueueEntry $entry)</code>
 * <code>public function <b>requeueEntry</b> (QueueEntry $entry, int $delay, string $workQueue = null)</code>
 * <code>public function <b>deleteEntry</b> (QueueEntry $entry)</code>
