@@ -40,7 +40,7 @@ class RedisWorkServer
 
     /**
      * Constructor.
-     * Takes an already-configured {@see Pheanstalk} instance to work with.
+     * Takes an already-configured {@see Redis} instance to work with.
      * Does not attempt to establish a connection itself --
      * use the {@see connect()} factory method for that instead
      * or do it with {@see Redis::connect()} prior to using this constructor.
@@ -281,14 +281,6 @@ class RedisWorkServer
 #		return $workQueues;
 #	}
 
-    /**
-     * Stores a job in the work queue for later processing.
-     *
-     * @param string $workQueue The name of the Work Queue to store the job in.
-     * @param Job $job          The job to store.
-     * @param int $delay        The job delay in seconds after which it will become available to {@see getNextQueueEntry()}.
-     *                          Set to zero (default) for jobs which should be processed as soon as possible.
-     */
     public function storeJob(string $workQueue, Job $job, int $delay = 0): void
     {
         $serializedData = serialize($job);
@@ -318,33 +310,12 @@ class RedisWorkServer
             $entry->getHandle());
     }
 
-    /**
-     * Re-queues an existing job
-     * so that it can be returned by {@see getNextQueueEntry()}
-     * again at some later time.
-     * A {@see $delay} is required
-     * to prevent the job from being returned right after it was re-queued.
-     *
-     * This is what happens to failed jobs which can still be re-queued for a retry.
-     *
-     * @param QueueEntry $entry       The job to re-queue. The instance should not be used anymore after this call.
-     * @param int $delay              The job delay in seconds. It will become available for {@see getNextQueueEntry()} after this delay.
-     * @param string|null $workQueue  By default, to job is re-queued into its original Work Queue ({@see QueueEntry::getWorkQueue}).
-     *                                With this parameter, a different Work Queue can be chosen.
-     */
     public function requeueEntry(QueueEntry $entry, int $delay, string $workQueue = null): void
     {
         $queueName = $workQueue ?? $entry->getWorkQueue();
         $this->storeJob($queueName, $entry->getJob(), $delay);
     }
 
-    /**
-     * Permanently deletes a job entry for its work queue.
-     *
-     * This is what happens to finished jobs.
-     *
-     * @param QueueEntry $entry The job to delete.
-     */
     public function deleteEntry(QueueEntry $entry): void
     {
         // nop, we already removed the entry from the queue with LPOP
