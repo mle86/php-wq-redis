@@ -1,4 +1,5 @@
 <?php
+
 namespace mle86\WQ\Tests;
 
 use mle86\WQ\Testing\AbstractWorkServerAdapterTest;
@@ -7,8 +8,7 @@ use mle86\WQ\WorkServerAdapter\RedisWorkServer;
 use PHPUnit\Framework\Error\Error;
 use Redis;
 
-class RedisServerTest
-    extends AbstractWorkServerAdapterTest
+class RedisServerTest extends AbstractWorkServerAdapterTest
 {
 
     public function checkEnvironment(): void

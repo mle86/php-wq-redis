@@ -1,4 +1,5 @@
 <?php
+
 namespace mle86\WQ\WorkServerAdapter;
 
 use mle86\WQ\Exception\UnserializationException;
@@ -26,13 +27,12 @@ use Redis;
  *
  * @see http://stackoverflow.com/a/15016319  The delaying mechanism was inspired by this StackOverflow response.
  */
-class RedisWorkServer
-    implements WorkServerAdapter
+class RedisWorkServer implements WorkServerAdapter
 {
 
-    const APPEND_DELAYED_JOBS = true;
+    public const DEFAULT_REDIS_PORT = 6379;
 
-    const DEFAULT_REDIS_PORT = 6379;
+    private const APPEND_DELAYED_JOBS = true;
 
 
     /** @var Redis */
@@ -70,11 +70,11 @@ class RedisWorkServer
         float $timeout = 0.0,
         int $retry_interval = 0
     ): self {
-        $redis = new Redis;
+        $redis = new Redis();
         if (!$redis->connect($host, $port, $timeout, $retry_interval)) {
-            throw new \RuntimeException ("Redis connection failed");
+            throw new \RuntimeException("Redis connection failed");
         }
-        return new self ($redis);
+        return new self($redis);
     }
 
 
@@ -90,7 +90,7 @@ class RedisWorkServer
 
         if (is_array($entry)) {
             // LPOP returns a string, BLPOP and multiLPOP() return a [fromKey,content] array
-            $workQueue = $entry[0] ?? null;
+            $workQueue = $entry[0] ?? '';
             $entry     = $entry[1] ?? null;
         }
 
@@ -172,7 +172,7 @@ class RedisWorkServer
      *
      * @param string[] $workQueues
      */
-    private function activateDelayedJobs(array $workQueues)
+    private function activateDelayedJobs(array $workQueues): void
     {
         foreach ($workQueues as $workQueue) {
             $delayedKey = self::delayedKey($workQueue);
@@ -246,40 +246,28 @@ class RedisWorkServer
         return null;
     }
 
-    private static function queueKey(string $workQueue)
+    private static function queueKey(string $workQueue): string
     {
         return "_wq.{$workQueue}";
     }
 
-    private static function delayedKey(string $workQueue)
+    private static function delayedKey(string $workQueue): string
     {
         return "_wq_delay.{$workQueue}";
     }
 
-    private static function buriedKey(string $workQueue)
+    private static function buriedKey(string $workQueue): string
     {
         return "_wq_buried.{$workQueue}";
     }
 
-    private static function queueKeys(array $workQueues)
+    private static function queueKeys(array $workQueues): array
     {
         foreach ($workQueues as &$wq) {
             $wq = self::queueKey($wq);
         }
         return $workQueues;
     }
-#	private static function delayedKeys (array $workQueues) {
-#		foreach ($workQueues as &$wq) {
-#			$wq = self::delayedKey($wq);
-#		}
-#		return $workQueues;
-#	}
-#	private static function buriedKeys (array $workQueues) {
-#		foreach ($workQueues as &$wq) {
-#			$wq = self::buriedKey($wq);
-#		}
-#		return $workQueues;
-#	}
 
     public function storeJob(string $workQueue, Job $job, int $delay = 0): void
     {
