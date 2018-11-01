@@ -14,7 +14,7 @@ using the [phpredis](https://pecl.php.net/package/redis) extension.
 # Version and Compatibility
 
 This is
-**version 1.0.0**
+**version 1.0.1**
 of `mle86/wq-redis`.
 
 It was developed for
